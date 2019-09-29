@@ -1,0 +1,103 @@
+<div>
+ <a href="https://github.com/itead/Sonoff_Devices_DIY_Tools/blob/master/SONOFF%20DIY%20MODE%20Protocol%20Doc%20v1.4.md">
+	<img src="/img/modules/sonoff_diy.png"  width="24" height="24"></a>&nbsp;Sonoff DIY Mode
+ &nbsp;
+    
+	[#if CYCLERUN==1#]
+		<span class="label label-success" title="Статус цикла">Цикл запущен</span>
+	[#else#]
+		<span class="label label-danger" title="Статус цикла">Цикл остановлен</span>
+	[#endif#]
+	<button class="btn btn-primary btn-sm float-right" data-toggle="modal" data-target="#about">About&nbsp;&nbsp;<span class="glyphicon glyphicon-info-sign icon-white"></span>
+	</button>
+</div>
+
+ <!-- action usual -->
+ [#if DATA_SOURCE="sonoff_diy_devices" || DATA_SOURCE=""#]
+ <!-- table sonoff_diy_devices search -->
+ [#if VIEW_MODE="search_sonoff_diy_devices" || VIEW_MODE=""#]
+  [#inc sonoff_diy_devices_search_admin.html#]
+ [#endif VIEW_MODE#]
+ <!-- / table sonoff_diy_devices search -->
+ <!-- table sonoff_diy_devices edit -->
+ [#if VIEW_MODE="edit_sonoff_diy_devices"#]
+   [#if ID!=""#]
+   [#if TITLE!=""#]<h4>[#TITLE#]</h4>[#endif TITLE#]
+<ul class="nav nav-tabs">
+  <li[#if TAB=""#] class="active"[#endif#]>
+   <a href="?data_source=<#DATA_SOURCE#>&view_mode=<#VIEW_MODE#>&id=<#ID#>&tab="><#LANG_GENERAL#></a>
+  </li>
+  <li[#if TAB="data"#] class="active"[#endif#]>
+   <a href="?data_source=<#DATA_SOURCE#>&view_mode=<#VIEW_MODE#>&id=<#ID#>&tab=data">&#060#LANG_DATA#&#062</a>
+  </li>
+</ul>
+&nbsp;<br/>
+   [#endif ID#]
+   [#if TAB=""#]
+    [#inc sonoff_diy_devices_edit_default.html#]
+   [#endif TAB#]
+   [#if TAB="data"#]
+    [#inc sonoff_diy_devices_edit_data.html#]
+   [#endif TAB#]
+ [#endif VIEW_MODE#]
+ <!-- / table sonoff_diy_devices edit -->
+ <!-- table sonoff_diy_devices view --> 
+ [#if VIEW_MODE="view_sonoff_diy_devices"#]
+   [#if TAB=""#]
+    [#inc sonoff_diy_devices_view_default.html#]
+   [#endif TAB#]
+ [#endif VIEW_MODE#]
+ <!-- / table sonoff_diy_devices view -->
+ [#endif DATA_SOURCE#]
+ <!-- action usual -->
+ [#if DATA_SOURCE="sonoff_diy_data"#]
+ <!-- table sonoff_diy_data search -->
+ [#if VIEW_MODE="search_sonoff_diy_data" || VIEW_MODE=""#]
+  [#inc sonoff_diy_data_search_admin.html#]
+ [#endif VIEW_MODE#]
+ <!-- / table sonoff_diy_data search -->
+ <!-- table sonoff_diy_data edit -->
+ [#if VIEW_MODE="edit_sonoff_diy_data"#]
+   [#inc sonoff_diy_data_edit.html#]
+ [#endif VIEW_MODE#]
+ <!-- / table sonoff_diy_data edit -->
+ <!-- table sonoff_diy_data view --> 
+ [#if VIEW_MODE="view_sonoff_diy_data"#]
+   [#inc sonoff_diy_data_view.html#]
+ [#endif VIEW_MODE#]
+ <!-- / table sonoff_diy_data view -->
+ [#endif DATA_SOURCE#]
+
+ <div class="modal fade" id="about" tabindex="-1" role="dialog" aria-labelledby="about1" aria-hidden="true">
+<!-- <div id="about" class="modal hide"> -->
+	<div class="modal-dialog">
+		<div class="modal-content">
+			<div class="modal-header">
+				<button class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+				<h4 class="modal-title">Sonoff DIY</h4>
+			</div>
+			<div class="modal-body">
+				<div class="float-right">
+					<img src="/img/modules/sonoff_diy.png"  width="48" height="48">
+				</div>
+                <p class="float-left"> Sonoff DIY.<br>
+				Обсуждение модуля <a href="http://majordomo.smartliving.ru/forum/viewtopic.php?f=5" target="_blank">здесь</a>.<br>
+				</p>
+				<hr size="1">
+				<p class="float-left">
+				Поддержать автора материально:
+				<ul>
+                    <li>Yandex: <a href="https://money.yandex.ru/to/410012076838296/100"  target="_blank">410012076838296</a></li>
+                    <li>WebMoney: R366396529511</li>
+                    <li><a href="https://connect.smartliving.ru/profile/186"  target="_blank">Connect</a></li>
+				</ul>
+                </p>
+			</div>
+			
+			<div class="modal-footer">
+				<div class="pull-left">Telegram: <a href="https://telegram.me/Eraser1981" target="_blank">@Eraser1981</a> :)</div>
+				<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+			</div>
+		</div>
+	</div>
+</div>
