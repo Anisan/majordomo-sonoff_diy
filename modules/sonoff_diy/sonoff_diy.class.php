@@ -233,25 +233,20 @@ function usual(&$out) {
   require(DIR_MODULES.$this->name.'/sonoff_diy_data_edit.inc.php');
  }
  function propertySetHandle($object, $property, $value) {
-  $this->getConfig();
-  //registerError('sonoff_diy', $object .$property. $value );
+   $this->getConfig();
    $table='sonoff_diy_data';
    $properties=SQLSelect("SELECT * FROM $table WHERE LINKED_OBJECT LIKE '".DBSafe($object)."' AND LINKED_PROPERTY LIKE '".DBSafe($property)."'");
    $total=count($properties);
-   //registerError('sonoff_diy', "find - ".$total );
    if ($total) {
     for($i=0;$i<$total;$i++) {
       $device_id = $properties[$i]["DEVICE_ID"];
-      //registerError('sonoff_diy', "device_id - ".$device_id );
       $table='sonoff_diy_devices';
       $rec=SQLSelectOne("SELECT * FROM $table WHERE ID=$device_id");
-       //registerError('sonoff_diy', "device - ".print_r($rec) );
       if ($rec['ID']) {
-           $ip = $rec["IP"];
-           $port = $rec["PORT"];
-          //registerError('sonoff_diy', "device - ".print_r($rec) );
-         if ($properties[$i]["TITLE"] == "switch")
-         {
+        $ip = $rec["IP"];
+        $port = $rec["PORT"];
+        if ($properties[$i]["TITLE"] == "switch")
+        {
              $url = "http://$ip:$port/zeroconf/switch";
              if ($value == 1) $val = 'on';
              if ($value == 0) $val = 'off';
@@ -261,7 +256,59 @@ function usual(&$out) {
              $data['data']['switch'] = $val;
              //registerError('sonoff_diy', $url . print_r($data));
              $this->callApi($url,$data);
-         }
+        }
+        if ($properties[$i]["TITLE"] == "startup") // on off stay
+        {
+            $url = "http://$ip:$port/zeroconf/startup";
+            $data = array();
+            $data['deviceid'] = $rec['DEVICE_ID'];
+            $data['data'] = array();
+            $data['data']['startup'] = $value;
+            $this->callApi($url,$data);
+        }
+        if ($properties[$i]["TITLE"] == "sledOnline") 
+        {
+            $url = "http://$ip:$port/zeroconf/ledOnline";
+            if ($value == 1) $val = 'on';
+            if ($value == 0) $val = 'off';
+            $data = array();
+            $data['deviceid'] = $rec['DEVICE_ID'];
+            $data['data'] = array();
+            $data['data']['ledOnline'] = $val;
+            $this->callApi($url,$data);
+        }
+        if ($properties[$i]["TITLE"] == "pulse")
+        {
+            $url = "http://$ip:$port/zeroconf/pulse";
+            if ($value == 1) $val = 'on';
+            if ($value == 0) $val = 'off';
+            $table='sonoff_diy_data';
+            $pulseWidth=SQLSelectOne("SELECT * FROM $table WHERE DEVICE_ID=". $rec['ID'] ." and TITLE = 'pulseWidth'");
+            
+            $data = array();
+            $data['deviceid'] = $rec['DEVICE_ID'];
+            $data['data'] = array();
+            $data['data']['pulse'] = $val;
+            $data['data']['pulseWidth'] = intval($pulseWidth["VALUE"]);
+             
+            $this->callApi($url,$data);
+        }
+        if ($properties[$i]["TITLE"] == "pulseWidth")
+        {
+            $url = "http://$ip:$port/zeroconf/pulse";
+            $table='sonoff_diy_data';
+            $pulse=SQLSelect("SELECT * FROM $table WHERE DEVICE_ID=". $rec['ID'] ." and TITLE = 'pulse'");
+            if ($pulse["VALUE"] == 1) $val = 'on';
+            if ($pulse["VALUE"] == 0) $val = 'off';
+            
+            $data = array();
+            $data['deviceid'] = $rec['DEVICE_ID'];
+            $data['data'] = array();
+            $data['data']['pulse'] = $val;
+            $data['data']['pulseWidth'] = intval($value);
+            
+            $this->callApi($url,$data);
+        }
       } 
     }
    }
@@ -272,7 +319,7 @@ function usual(&$out) {
     try
     { 
         $data_string = json_encode($params);
-
+        registerError('sonoff_diy', $url. " " . $data_string);
         $ch = curl_init($url); 
         curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
         curl_setopt($ch, CURLOPT_POSTFIELDS, $data_string);
@@ -283,13 +330,20 @@ function usual(&$out) {
         );
 
         $result = curl_exec($ch);
-        //registerError('sonoff_diy', 'result - '.$url.' == '.$result);
+        registerError('sonoff_diy', 'Result query - '.$url.' == '. $result);
+        $result = json_decode($result);
+        
     }
     catch (Exception $e)
     {
         registerError('sonoff_diy', 'Error send query - '.$url.' == '.get_class($e) . ', ' . $e->getMessage());
+        $result = array();
+        $result["error"] = 1;
+        $result["data"] = array();
+        $result["data"]["class"] = get_class($e);
+        $result["data"]["message"] = $e->getMessage();
     } 
-    return true;
+    return $result;
 }
 
  
@@ -347,7 +401,7 @@ function usual(&$out) {
                     $value["VALUE"] = $val;
                     SQLUpdate($table_name, $value);
                     if ($value['LINKED_OBJECT'] && $value['LINKED_PROPERTY']) {
-                        setGlobal($value['LINKED_OBJECT'] . '.' . $value['LINKED_PROPERTY'], $val);
+                        setGlobal($value['LINKED_OBJECT'] . '.' . $value['LINKED_PROPERTY'], $val, array($this->name => '0'));
                }
                 }
             }
@@ -424,6 +478,7 @@ function usual(&$out) {
 				
 				print_r($d);
                 $this->updateDevice($name,"DEVICE_ID",$d['id']);
+                $this->updateDevice($name,"UPDATED",date('Y-m-d H:i:s'));
                 //update data device
                 $this->updateData($name,json_decode($d['data1']));
 			}

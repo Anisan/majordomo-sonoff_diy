@@ -11,17 +11,12 @@
    $ok=1;
   // step: default
   if ($this->tab=='') {
-  //updating '<%LANG_TITLE%>' (varchar, required)
+  //updating TITLE (varchar, required)
    $rec['TITLE']=gr('title');
    if ($rec['TITLE']=='') {
     $out['ERR_TITLE']=1;
     $ok=0;
    }
-  //updating '<%LANG_UPDATED%>' (datetime)
-   global $updated_date;
-   global $updated_minutes;
-   global $updated_hours;
-   $rec['UPDATED']=toDBDate($updated_date)." $updated_hours:$updated_minutes:00";
   }
   // step: data
   if ($this->tab=='data') {
@@ -82,10 +77,6 @@
    for($i=0;$i<$total;$i++) {
     if ($properties[$i]['ID']==$new_id) continue;
     if ($this->mode=='update') {
-      global ${'title'.$properties[$i]['ID']};
-      $properties[$i]['TITLE']=trim(${'title'.$properties[$i]['ID']});
-      global ${'value'.$properties[$i]['ID']};
-      $properties[$i]['VALUE']=trim(${'value'.$properties[$i]['ID']});
       global ${'linked_object'.$properties[$i]['ID']};
       $properties[$i]['LINKED_OBJECT']=trim(${'linked_object'.$properties[$i]['ID']});
       global ${'linked_property'.$properties[$i]['ID']};
