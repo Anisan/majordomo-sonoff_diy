@@ -92,7 +92,15 @@
       if ($properties[$i]['LINKED_OBJECT'] && $properties[$i]['LINKED_PROPERTY']) {
        addLinkedProperty($properties[$i]['LINKED_OBJECT'], $properties[$i]['LINKED_PROPERTY'], $this->name);
       }
-     }
+    }
+    if (file_exists(DIR_MODULES.'devices/devices.class.php')) {
+        if ($properties[$i]['TITLE']=='switch') {
+            $properties[$i]['SDEVICE_TYPE'] = 'relay';
+        }else {
+            $properties[$i]['SDEVICE_TYPE']='sensor_general';
+        }
+    } 
+     
    }
    $out['PROPERTIES']=$properties;   
   }
