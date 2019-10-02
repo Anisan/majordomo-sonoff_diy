@@ -254,8 +254,7 @@ function usual(&$out) {
              $data['deviceid'] = $rec['DEVICE_ID'];
              $data['data'] = array();
              $data['data']['switch'] = $val;
-             //registerError('sonoff_diy', $url . print_r($data));
-             $this->callApi($url,$data);
+             $res = $this->callApi($url,$data);
         }
         if ($properties[$i]["TITLE"] == "startup") // on off stay
         {
@@ -264,7 +263,7 @@ function usual(&$out) {
             $data['deviceid'] = $rec['DEVICE_ID'];
             $data['data'] = array();
             $data['data']['startup'] = $value;
-            $this->callApi($url,$data);
+            $res = $this->callApi($url,$data);
         }
         if ($properties[$i]["TITLE"] == "sledOnline") 
         {
@@ -291,7 +290,7 @@ function usual(&$out) {
             $data['data']['pulse'] = $val;
             $data['data']['pulseWidth'] = intval($pulseWidth["VALUE"]);
              
-            $this->callApi($url,$data);
+            $res = $this->callApi($url,$data);
         }
         if ($properties[$i]["TITLE"] == "pulseWidth")
         {
@@ -307,7 +306,13 @@ function usual(&$out) {
             $data['data']['pulse'] = $val;
             $data['data']['pulseWidth'] = intval($value);
             
-            $this->callApi($url,$data);
+            $res = $this->callApi($url,$data);
+        }
+        if ($res["error"] == 1)
+        {
+            $data = array();
+            $data['alive'] = '0';
+            $this->updateData($rec['MDNS_NAME'],$data);
         }
       } 
     }
@@ -319,7 +324,6 @@ function usual(&$out) {
     try
     { 
         $data_string = json_encode($params);
-        registerError('sonoff_diy', $url. " " . $data_string);
         $ch = curl_init($url); 
         curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
         curl_setopt($ch, CURLOPT_POSTFIELDS, $data_string);
@@ -330,9 +334,16 @@ function usual(&$out) {
         );
 
         $result = curl_exec($ch);
-        registerError('sonoff_diy', 'Result query - '.$url.' == '. $result);
-        $result = json_decode($result);
-        
+        //DebMes('API - '.$url.' => '. $result, 'sonoff_diy');
+        if ($result == "")
+        {
+            $result = array();
+            $result["error"] = 1;
+            $result["data"] = array();
+            $result["data"]["message"] = "Empty result";
+        }
+        else
+            $result = json_decode($result,true);
     }
     catch (Exception $e)
     {
@@ -369,7 +380,6 @@ function usual(&$out) {
  }
  function updateData($name, $data)
  {
-    print_r($data);
     $table_name='sonoff_diy_devices';
     $rec=SQLSelectOne("SELECT * FROM $table_name WHERE MDNS_NAME='$name'");
     
@@ -402,7 +412,7 @@ function usual(&$out) {
                     SQLUpdate($table_name, $value);
                     if ($value['LINKED_OBJECT'] && $value['LINKED_PROPERTY']) {
                         setGlobal($value['LINKED_OBJECT'] . '.' . $value['LINKED_PROPERTY'], $val, array($this->name => '0'));
-               }
+                    }
                 }
             }
             else{
@@ -412,7 +422,33 @@ function usual(&$out) {
         }
     }
  }
- 
+ function checkAlive() {
+    $this->getConfig();
+    $table_name='sonoff_diy_devices';
+    $devices=SQLSelect("SELECT * FROM $table_name");
+    $total=count($devices);
+    for($i=0;$i<$total;$i++) {
+        $ip = $devices[$i]["IP"];
+        $port = $devices[$i]["PORT"];
+        $url = "http://$ip:$port/zeroconf/info";
+        $data = array();
+        $data['deviceid'] = $devices[$i]['DEVICE_ID'];
+        $data['data'] = array();
+        $res = $this->callApi($url,$data);
+        if ($res["error"] == 1)
+        {
+            $data = array();
+            $data['alive'] = '0';
+            $this->updateData($devices[$i]['MDNS_NAME'],$data);
+        }
+        else
+        {
+            $data = array();
+            $data['alive'] = '1';
+            $this->updateData($devices[$i]['MDNS_NAME'],$data);
+        }
+    }
+ }
  function processCycle() {
     $this->getConfig();
     // Search for devices
@@ -430,9 +466,9 @@ function usual(&$out) {
             if (strpos($inpacket->answerrrs[$x]->name ,"_ewelink._tcp.local")  === false &&
                 strpos($inpacket->answerrrs[$x]->name ,"eWeLink")  === false)
                 continue;
-            echo date('Y-m-d H:i:s')." ".$inpacket->answerrrs[$x]->name . "\n";
+            //echo date('Y-m-d H:i:s')." ".$inpacket->answerrrs[$x]->name . "\n";
             $name = substr($inpacket->answerrrs[$x]->name, 0, strpos($inpacket->answerrrs[$x]->name,'.'));
-            echo date('Y-m-d H:i:s')." ".$name . "\n";
+            //echo date('Y-m-d H:i:s')." ".$name . "\n";
             //print_r($inpacket->answerrrs[$x]);
             // PTR
 			if ($inpacket->answerrrs[$x]->qtype == 12) {
@@ -442,7 +478,7 @@ function usual(&$out) {
 						$nameMDNS .= chr($inpacket->answerrrs[$x]->data[$y]);
 					}
                     $name = substr($nameMDNS, 0, strpos($nameMDNS,'.'));
-                    print_r($name);
+                    //print_r($name);
                     // add device 
                     $this->updateDevice($name,"","");
 					// Send a a SRV query
@@ -476,11 +512,13 @@ function usual(&$out) {
                     $d[$key] = $value;
                 }
 				
-				print_r($d);
+				//DebMes($d, 'sonoff_diy');
                 $this->updateDevice($name,"DEVICE_ID",$d['id']);
                 $this->updateDevice($name,"UPDATED",date('Y-m-d H:i:s'));
                 //update data device
-                $this->updateData($name,json_decode($d['data1']));
+                $data = json_decode($d['data1'],true);
+                $data["alive"] = 1;
+                $this->updateData($name,$data);
 			}
             // SRV
 			if ($inpacket->answerrrs[$x]->qtype == 33) {
@@ -497,7 +535,7 @@ function usual(&$out) {
 				$target .= ".local";
                 // update $port device
 				//$port  $target
-                echo "PORT ".$port." ".  $name."\n";
+                //echo "PORT ".$port." ".  $name."\n";
                 $this->updateDevice($name,"PORT",$port);
 				// We know the name and port. Send an A query for the IP address
 				$this->mdns->query($target,1,1,"");
@@ -507,7 +545,7 @@ function usual(&$out) {
 				$d = $inpacket->answerrrs[$x]->data;
 				$ip = $d[0] . "." . $d[1] . "." . $d[2] . "." . $d[3];
                 // update $IP device
-                echo "IP ".$ip." ".  $name."\n";
+                //echo "IP ".$ip." ".  $name."\n";
                 $this->updateDevice($name,"IP",$ip);
 
 			}

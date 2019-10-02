@@ -27,6 +27,13 @@
     // some action for every record if required
     $tmp=explode(' ', $res[$i]['UPDATED']);
     $res[$i]['UPDATED']=fromDBDate($tmp[0])." ".$tmp[1];
+    $table_name='sonoff_diy_data';
+    $id = $res[$i]['ID'];
+    $value=SQLSelectOne("SELECT * FROM $table_name WHERE DEVICE_ID='$id' and TITLE='alive'");
+    if ($value['VALUE'])
+        $res[$i]['ONLINE'] = 1;
+    else
+        $res[$i]['ONLINE'] = 0;
    }
    $out['RESULT']=$res;
   }

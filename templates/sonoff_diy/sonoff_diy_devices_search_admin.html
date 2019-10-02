@@ -32,14 +32,12 @@
   </a></b>
  </td>
  <td>
-  <b>
-   [#IP#]
-  </a></b>
- </td>
- <td>
-  <b>
-   [#ONLINE#]
-  </a></b>
+  [#IP#]
+  [#if ONLINE==1#]
+   <span class="label label-success">Online</span> 
+  [#else#]
+   <span class="label label-danger">Online</span> 
+  [#endif#]
  </td>
  <td>
   [#if UPDATED!=""#]

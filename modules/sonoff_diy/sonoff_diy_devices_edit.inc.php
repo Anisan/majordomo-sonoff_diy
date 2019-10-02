@@ -63,7 +63,15 @@
   }
   }
   // step: data
-  if ($this->tab=='data') {
+  if ($this->tab!='data') {
+    $table_name='sonoff_diy_data';
+    $id = $rec['ID'];
+    $value=SQLSelectOne("SELECT * FROM $table_name WHERE DEVICE_ID='$id' and TITLE='alive'");
+    if ($value['VALUE'])
+       $rec['ONLINE'] = 1;
+    else
+       $rec['ONLINE'] = 0;
+
   }
   if ($this->tab=='data') {
    //dataset2

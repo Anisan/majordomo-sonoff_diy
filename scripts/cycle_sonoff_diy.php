@@ -14,14 +14,15 @@ $sonoff_diy_module = new sonoff_diy();
 $sonoff_diy_module->getConfig();
 echo date("H:i:s") . " running " . basename(__FILE__) . PHP_EOL;
 $latest_check=0;
-$checkEvery=0; // poll every 5 seconds
+$checkEvery=5*60;
 while (1)
 {
    setGlobal((str_replace('.php', '', basename(__FILE__))) . 'Run', time(), 1);
+   $sonoff_diy_module->processCycle();
    if ((time()-$latest_check)>$checkEvery) {
     $latest_check=time();
-    //echo date('Y-m-d H:i:s')." Polling devices...\n";
-    $sonoff_diy_module->processCycle();
+    echo date('Y-m-d H:i:s')." Check devices...\n";
+    $sonoff_diy_module->checkAlive();
    }
    if (file_exists('./reboot') || IsSet($_GET['onetime']))
    {
