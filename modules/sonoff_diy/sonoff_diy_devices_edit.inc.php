@@ -13,6 +13,7 @@
   if ($this->tab=='') {
   //updating TITLE (varchar, required)
    $rec['TITLE']=gr('title');
+   $rec['DEVICE_KEY']=gr('device_key');
    if ($rec['TITLE']=='') {
     $out['ERR_TITLE']=1;
     $ok=0;

@@ -29,7 +29,15 @@
  <td>
   <b>
    [#TITLE#]
-  </a></b>
+    [#if DEVICE_MODE==0#]
+        <span class="label label-success">DIY mode</span> 
+    [#else#]
+        <span class="label label-primary">LAN mode</span> 
+        [#if DEVICE_KEY==''#]
+            <a href='http://majordomo.smartliving.ru/forum/viewtopic.php?f=5&t=6720' target="_blank" style="color:red">Need device key</a>
+        [#endif#]
+    [#endif#]
+  </b>
  </td>
  <td>
   [#IP#]

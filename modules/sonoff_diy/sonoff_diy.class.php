@@ -241,85 +241,96 @@ function usual(&$out) {
     for($i=0;$i<$total;$i++) {
       $device_id = $properties[$i]["DEVICE_ID"];
       $table='sonoff_diy_devices';
-      $rec=SQLSelectOne("SELECT * FROM $table WHERE ID=$device_id");
-      if ($rec['ID']) {
-        $ip = $rec["IP"];
-        $port = $rec["PORT"];
+      $device=SQLSelectOne("SELECT * FROM $table WHERE ID=$device_id");
+      if ($device['ID']) {
+        $params = array();
+             
         if ($properties[$i]["TITLE"] == "switch")
         {
-             $url = "http://$ip:$port/zeroconf/switch";
+             $cmd = "zeroconf/switch";
              if ($value == 1) $val = 'on';
              if ($value == 0) $val = 'off';
-             $data = array();
-             $data['deviceid'] = $rec['DEVICE_ID'];
-             $data['data'] = array();
-             $data['data']['switch'] = $val;
-             $res = $this->callApi($url,$data);
+             $params['switch'] = $val;
         }
         if ($properties[$i]["TITLE"] == "startup") // on off stay
         {
-            $url = "http://$ip:$port/zeroconf/startup";
-            $data = array();
-            $data['deviceid'] = $rec['DEVICE_ID'];
-            $data['data'] = array();
-            $data['data']['startup'] = $value;
-            $res = $this->callApi($url,$data);
+            $cmd = "zeroconf/startup";
+            $params['startup'] = $value;
         }
         if ($properties[$i]["TITLE"] == "sledOnline") 
         {
-            $url = "http://$ip:$port/zeroconf/ledOnline";
+            $cmd = "zeroconf/sledOnline";
             if ($value == 1) $val = 'on';
             if ($value == 0) $val = 'off';
-            $data = array();
-            $data['deviceid'] = $rec['DEVICE_ID'];
-            $data['data'] = array();
-            $data['data']['ledOnline'] = $val;
-            $this->callApi($url,$data);
+            $params['sledOnline'] = $val;
         }
         if ($properties[$i]["TITLE"] == "pulse")
         {
-            $url = "http://$ip:$port/zeroconf/pulse";
+            $cmd = "zeroconf/pulse";
             if ($value == 1) $val = 'on';
             if ($value == 0) $val = 'off';
             $table='sonoff_diy_data';
-            $pulseWidth=SQLSelectOne("SELECT * FROM $table WHERE DEVICE_ID=". $rec['ID'] ." and TITLE = 'pulseWidth'");
+            $pulseWidth=SQLSelectOne("SELECT * FROM $table WHERE DEVICE_ID=". $device['ID'] ." and TITLE = 'pulseWidth'");
             
-            $data = array();
-            $data['deviceid'] = $rec['DEVICE_ID'];
-            $data['data'] = array();
-            $data['data']['pulse'] = $val;
-            $data['data']['pulseWidth'] = intval($pulseWidth["VALUE"]);
-             
-            $res = $this->callApi($url,$data);
+            $params['pulse'] = $val;
+            $params['pulseWidth'] = intval($pulseWidth["VALUE"]);
         }
         if ($properties[$i]["TITLE"] == "pulseWidth")
         {
-            $url = "http://$ip:$port/zeroconf/pulse";
+            $cmd = "zeroconf/pulse";
             $table='sonoff_diy_data';
-            $pulse=SQLSelect("SELECT * FROM $table WHERE DEVICE_ID=". $rec['ID'] ." and TITLE = 'pulse'");
+            $pulse=SQLSelect("SELECT * FROM $table WHERE DEVICE_ID=". $device['ID'] ." and TITLE = 'pulse'");
             if ($pulse["VALUE"] == 1) $val = 'on';
             if ($pulse["VALUE"] == 0) $val = 'off';
             
-            $data = array();
-            $data['deviceid'] = $rec['DEVICE_ID'];
-            $data['data'] = array();
-            $data['data']['pulse'] = $val;
-            $data['data']['pulseWidth'] = intval($value);
-            
-            $res = $this->callApi($url,$data);
+            $params['pulse'] = $val;
+            $params['pulseWidth'] = intval($value);
         }
+        
+        
+        $res = $this->callApi($device,$cmd, $params);
+        
         if ($res["error"] == 1)
         {
             $data = array();
             $data['alive'] = '0';
-            $this->updateData($rec['MDNS_NAME'],$data);
+            $this->updateData($device['MDNS_NAME'],$data);
         }
       } 
     }
    }
  }
+
+function callAPI($device, $cmd, $params)
+{
+    $ip = $device["IP"];
+    $port = $device["PORT"];
+    
+    $url = "http://$ip:$port/$cmd";
+        
+    $data = array();
+    $data['deviceid'] = $device['DEVICE_ID'];
+    if ($device['DEVICE_KEY']!='')
+    {
+        $data['encrypt']=true;
+        $data['sequence']=strval(time());
+        //$data['selfApiKey']='9b341765-44e0-4c5b-819b-960b2f6a6977';
+        $data['selfApiKey']=$device['DEVICE_KEY'];
+        $iv = $this->generate_iv();
+        $data['iv']=$iv;
+        if (empty($params))
+            $str_params = "{}";
+        else
+            $str_params = json_encode($params);
+        $data['data'] = $this->encrypt($device['DEVICE_KEY'],$iv,$str_params);
+    }
+    else
+        $data['data'] = $params;
+    
+    return $this->sendRequest($url, $data);
+}
  
- function callAPI($url, $params = 0)
+function sendRequest($url, $params = 0)
 {
     try
     { 
@@ -333,8 +344,10 @@ function usual(&$out) {
             'Content-Length: ' . strlen($data_string))
         );
 
+        DebMes('API request - '.$url.' => '. $data_string, 'sonoff_diy');
+        
         $result = curl_exec($ch);
-        //DebMes('API - '.$url.' => '. $result, 'sonoff_diy');
+        DebMes('API responce - '.$url.' => '. $result, 'sonoff_diy');
         if ($result == "")
         {
             $result = array();
@@ -428,13 +441,10 @@ function usual(&$out) {
     $devices=SQLSelect("SELECT * FROM $table_name");
     $total=count($devices);
     for($i=0;$i<$total;$i++) {
-        $ip = $devices[$i]["IP"];
-        $port = $devices[$i]["PORT"];
-        $url = "http://$ip:$port/zeroconf/info";
-        $data = array();
-        $data['deviceid'] = $devices[$i]['DEVICE_ID'];
-        $data['data'] = array();
-        $res = $this->callApi($url,$data);
+        $cmd = "zeroconf/info";
+        $params = array();
+        $res = $this->callApi($devices[$i],$cmd,$params);
+        //print_r($res);
         if ($res["error"] == 1)
         {
             $data = array();
@@ -515,9 +525,23 @@ function usual(&$out) {
 				//DebMes($d, 'sonoff_diy');
                 $this->updateDevice($name,"DEVICE_ID",$d['id']);
                 $this->updateDevice($name,"UPDATED",date('Y-m-d H:i:s'));
+                
+                //print_r($d);
                 //update data device
-                $data = json_decode($d['data1'],true);
+                if ($d["encrypt"] == "true")
+                {
+                    $this->updateDevice($name,"DEVICE_MODE",1);
+                    $table_name='sonoff_diy_devices';
+                    $device=SQLSelectOne("SELECT * FROM $table_name WHERE MDNS_NAME='$name'");
+                    $data = json_decode($this->decrypt($device['DEVICE_KEY'] ,$d["iv"],$d['data1']),true);
+                }
+                else
+                {
+                    $this->updateDevice($name,"DEVICE_MODE",0);
+                    $data = json_decode($d['data1'],true);
+                }
                 $data["alive"] = 1;
+                //DebMes($data, 'sonoff_diy');
                 $this->updateData($name,$data);
 			}
             // SRV
@@ -553,6 +577,29 @@ function usual(&$out) {
 	}
   
  }
+ 
+ function generate_iv()
+ {
+    $iv = random_bytes(16);
+    return base64_encode($iv);
+ }
+            
+ 
+ function encrypt($device_key, $iv, $data)
+ {
+    $key = md5($device_key, true);
+    $encodedData = base64_encode(openssl_encrypt($data, 'aes-128-cbc', $key, OPENSSL_RAW_DATA, base64_decode($iv)));
+    return $encodedData;
+        
+ }
+ 
+ function decrypt($device_key, $iv, $data)
+ {
+    $key = md5($device_key, true);
+    $decryptedData = openssl_decrypt(base64_decode($data), 'aes-128-cbc', $key, OPENSSL_RAW_DATA, base64_decode($iv));
+    return $decryptedData;
+ }
+ 
 /**
 * Install
 *
@@ -592,6 +639,8 @@ sonoff_diy_data -
  sonoff_diy_devices: TITLE varchar(100) NOT NULL DEFAULT ''
  sonoff_diy_devices: MDNS_NAME varchar(100) NOT NULL DEFAULT ''
  sonoff_diy_devices: DEVICE_ID varchar(100) NOT NULL DEFAULT ''
+ sonoff_diy_devices: DEVICE_KEY varchar(100) NOT NULL DEFAULT ''
+ sonoff_diy_devices: DEVICE_MODE int(10) NOT NULL DEFAULT 0
  sonoff_diy_devices: IP varchar(100) NOT NULL DEFAULT ''
  sonoff_diy_devices: PORT varchar(100) NOT NULL DEFAULT ''
  sonoff_diy_devices: UPDATED datetime
