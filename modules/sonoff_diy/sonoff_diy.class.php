@@ -361,6 +361,7 @@ function sendRequest($url, $params = 0)
     catch (Exception $e)
     {
         registerError('sonoff_diy', 'Error send query - '.$url.' == '.get_class($e) . ', ' . $e->getMessage());
+		DebMes('API error - '.$url.' => '. get_class($e) . ', ' . $e->getMessage(), 'sonoff_diy');
         $result = array();
         $result["error"] = 1;
         $result["data"] = array();
@@ -479,7 +480,8 @@ function sendRequest($url, $params = 0)
             //echo date('Y-m-d H:i:s')." ".$inpacket->answerrrs[$x]->name . "\n";
             $name = substr($inpacket->answerrrs[$x]->name, 0, strpos($inpacket->answerrrs[$x]->name,'.'));
             //echo date('Y-m-d H:i:s')." ".$name . "\n";
-            //print_r($inpacket->answerrrs[$x]);
+			//print_r($inpacket->answerrrs[$x]);
+			//DebMes($inpacket->answerrrs[$x], 'sonoff_diy');
             // PTR
 			if ($inpacket->answerrrs[$x]->qtype == 12) {
                 if ($inpacket->answerrrs[$x]->name == "_ewelink._tcp.local") {
@@ -489,6 +491,7 @@ function sendRequest($url, $params = 0)
 					}
                     $name = substr($nameMDNS, 0, strpos($nameMDNS,'.'));
                     //print_r($name);
+					DebMes($name . ' qtype='.$inpacket->answerrrs[$x]->qtype . " nameDns=".$nameMDNS, 'sonoff_diy');
                     // add device 
                     $this->updateDevice($name,"","");
 					// Send a a SRV query
@@ -522,7 +525,7 @@ function sendRequest($url, $params = 0)
                     $d[$key] = $value;
                 }
 				
-				//DebMes($d, 'sonoff_diy');
+				DebMes($name. " txt=" .json_encode($d), 'sonoff_diy');
                 $this->updateDevice($name,"DEVICE_ID",$d['id']);
                 $this->updateDevice($name,"UPDATED",date('Y-m-d H:i:s'));
                 
@@ -541,6 +544,7 @@ function sendRequest($url, $params = 0)
                     $data = json_decode($d['data1'],true);
                 }
                 $data["alive"] = 1;
+				DebMes($name. " data=" .json_encode($data), 'sonoff_diy');
                 //DebMes($data, 'sonoff_diy');
                 $this->updateData($name,$data);
 			}
@@ -560,6 +564,7 @@ function sendRequest($url, $params = 0)
                 // update $port device
 				//$port  $target
                 //echo "PORT ".$port." ".  $name."\n";
+				DebMes($name. " port=" .$port, 'sonoff_diy');
                 $this->updateDevice($name,"PORT",$port);
 				// We know the name and port. Send an A query for the IP address
 				$this->mdns->query($target,1,1,"");
@@ -570,6 +575,7 @@ function sendRequest($url, $params = 0)
 				$ip = $d[0] . "." . $d[1] . "." . $d[2] . "." . $d[3];
                 // update $IP device
                 //echo "IP ".$ip." ".  $name."\n";
+				DebMes($name. " ip=" .$ip, 'sonoff_diy');
                 $this->updateDevice($name,"IP",$ip);
 
 			}
