@@ -252,6 +252,19 @@ function usual(&$out) {
              if ($value == 0) $val = 'off';
              $params['switch'] = $val;
         }
+		if ($properties[$i]["TITLE"] == "switch0" ||
+			$properties[$i]["TITLE"] == "switch1" ||
+			$properties[$i]["TITLE"] == "switch2" ||
+			$properties[$i]["TITLE"] == "switch3" )
+        {
+             $cmd = "zeroconf/switch";
+             if ($value == 1) $val = 'on';
+             if ($value == 0) $val = 'off';
+			 $switch = array();
+             $switch['switch'] = $val;
+			 $switch['outlet'] = intval(substr($properties[$i]["TITLE"],6,1));
+			 $params[] = $switch;
+        }
         if ($properties[$i]["TITLE"] == "startup") // on off stay
         {
             $cmd = "zeroconf/startup";
@@ -535,22 +548,40 @@ function sendRequest($url, $params = 0)
 				DebMes($name. " txt=" .json_encode($d), 'sonoff_diy');
                 $this->updateDevice($name,"DEVICE_ID",$d['id']);
                 $this->updateDevice($name,"UPDATED",date('Y-m-d H:i:s'));
+                                
+                $df = $d['data1'];
+                if (array_key_exists('data2', $d)) $df = $df.$d['data2'];
+                if (array_key_exists('data3', $d)) $df = $df.$d['data3'];
                 
-                //print_r($d);
                 //update data device
                 if ($d["encrypt"] == "true")
                 {
                     $this->updateDevice($name,"DEVICE_MODE",1);
                     $table_name='sonoff_diy_devices';
                     $device=SQLSelectOne("SELECT * FROM $table_name WHERE MDNS_NAME='$name'");
-                    $data = json_decode($this->decrypt($device['DEVICE_KEY'] ,$d["iv"],$d['data1']),true);
+                    $data = json_decode($this->decrypt($device['DEVICE_KEY'] ,$d["iv"],$df),true);
+					if ($d["type"] == 'strip')
+					{
+						foreach ($data['switches'] as $key => $val)
+						{
+							$data['switch'.$val['outlet']] = $val['switch'];
+						}
+						foreach ($data['configure'] as $key => $val)
+						{
+							$data['startup'.$val['outlet']] = $val['startup'];
+						}
+						unset($data['switches']);
+						unset($data['pulses']);
+						unset($data['configure']);
+					}
                 }
                 else
                 {
                     $this->updateDevice($name,"DEVICE_MODE",0);
-                    $data = json_decode($d['data1'],true);
+                    $data = json_decode($df,true);
                 }
                 $data["alive"] = 1;
+				//print_r($data);
 				DebMes($name. " data=" .json_encode($data), 'sonoff_diy');
                 //DebMes($data, 'sonoff_diy');
                 $this->updateData($name,$data);
