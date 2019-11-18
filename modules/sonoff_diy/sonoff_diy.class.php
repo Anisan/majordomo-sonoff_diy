@@ -339,6 +339,8 @@ function sendRequest($url, $params = 0)
         curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
         curl_setopt($ch, CURLOPT_POSTFIELDS, $data_string);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10); 
+        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
         curl_setopt($ch, CURLOPT_HTTPHEADER, array(
             'Content-Type: application/json',
             'Content-Length: ' . strlen($data_string))
@@ -348,12 +350,13 @@ function sendRequest($url, $params = 0)
         
         $result = curl_exec($ch);
         DebMes('API responce - '.$url.' => '. $result, 'sonoff_diy');
+        //echo $result . "\n";
         if ($result == "")
         {
             $result = array();
             $result["error"] = 1;
             $result["data"] = array();
-            $result["data"]["message"] = "Empty result";
+            $result["data"]["message"] = "Empty responce result";
         }
         else
             $result = json_decode($result,true);
@@ -450,12 +453,16 @@ function sendRequest($url, $params = 0)
         {
             $data = array();
             $data['alive'] = '0';
+            $data['error'] = $res["data"]["message"];
+            if ($devices[$i]['DEVICE_MODE'] == 1 && $devices[$i]['DEVICE_KEY']=='')
+                $data['error'] = $data['error'] . " (maybe wrong device key)";
             $this->updateData($devices[$i]['MDNS_NAME'],$data);
         }
         else
         {
             $data = array();
             $data['alive'] = '1';
+            $data['error'] = '';
             $this->updateData($devices[$i]['MDNS_NAME'],$data);
         }
     }
