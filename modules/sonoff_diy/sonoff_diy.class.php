@@ -257,13 +257,13 @@ function usual(&$out) {
 			$properties[$i]["TITLE"] == "switch2" ||
 			$properties[$i]["TITLE"] == "switch3" )
         {
-             $cmd = "zeroconf/switch";
+             $cmd = "zeroconf/switches";
              if ($value == 1) $val = 'on';
              if ($value == 0) $val = 'off';
 			 $switch = array();
              $switch['switch'] = $val;
 			 $switch['outlet'] = intval(substr($properties[$i]["TITLE"],6,1));
-			 $params[] = $switch;
+			 $params['switches'] = $switch;
         }
         if ($properties[$i]["TITLE"] == "startup") // on off stay
         {
@@ -560,26 +560,26 @@ function sendRequest($url, $params = 0)
                     $table_name='sonoff_diy_devices';
                     $device=SQLSelectOne("SELECT * FROM $table_name WHERE MDNS_NAME='$name'");
                     $data = json_decode($this->decrypt($device['DEVICE_KEY'] ,$d["iv"],$df),true);
-					if ($d["type"] == 'strip')
-					{
-						foreach ($data['switches'] as $key => $val)
-						{
-							$data['switch'.$val['outlet']] = $val['switch'];
-						}
-						foreach ($data['configure'] as $key => $val)
-						{
-							$data['startup'.$val['outlet']] = $val['startup'];
-						}
-						unset($data['switches']);
-						unset($data['pulses']);
-						unset($data['configure']);
-					}
                 }
                 else
                 {
                     $this->updateDevice($name,"DEVICE_MODE",0);
                     $data = json_decode($df,true);
                 }
+                if ($d["type"] == 'strip')
+				{
+                    foreach ($data['switches'] as $key => $val)
+					{
+						$data['switch'.$val['outlet']] = $val['switch'];
+					}
+					foreach ($data['configure'] as $key => $val)
+					{
+						$data['startup'.$val['outlet']] = $val['startup'];
+					}
+					unset($data['switches']);
+					unset($data['pulses']);
+					unset($data['configure']);
+				}
                 $data["alive"] = 1;
 				//print_r($data);
 				DebMes($name. " data=" .json_encode($data), 'sonoff_diy');
