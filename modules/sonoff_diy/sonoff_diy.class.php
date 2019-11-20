@@ -260,10 +260,11 @@ function usual(&$out) {
              $cmd = "zeroconf/switches";
              if ($value == 1) $val = 'on';
              if ($value == 0) $val = 'off';
-			 $switch = array();
-             $switch['switch'] = $val;
-			 $switch['outlet'] = intval(substr($properties[$i]["TITLE"],6,1));
-			 $params['switches'] = $switch;
+			 $params['switches'] = array();
+             $switch = array();
+             $switch['outlet'] = intval(substr($properties[$i]["TITLE"],6,1));
+			 $switch['switch'] = $val;
+			 $params['switches'][] = $switch;
         }
         if ($properties[$i]["TITLE"] == "startup") // on off stay
         {
@@ -320,7 +321,9 @@ function callAPI($device, $cmd, $params)
     $port = $device["PORT"];
     
     $url = "http://$ip:$port/$cmd";
-        
+    
+    DebMes($name. " params=" .json_encode($params), 'sonoff_diy');
+            
     $data = array();
     $data['deviceid'] = $device['DEVICE_ID'];
     if ($device['DEVICE_KEY']!='')
@@ -566,6 +569,7 @@ function sendRequest($url, $params = 0)
                     $this->updateDevice($name,"DEVICE_MODE",0);
                     $data = json_decode($df,true);
                 }
+                DebMes($name. " decode=" .json_encode($data), 'sonoff_diy');
                 if ($d["type"] == 'strip')
 				{
                     foreach ($data['switches'] as $key => $val)
