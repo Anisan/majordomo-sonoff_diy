@@ -441,10 +441,15 @@ function sendRequest($url, $params = 0)
             if ($value['ID']) {
                 if ($value["VALUE"] != $val)
                 {   
+		    $old_value = $value["VALUE"];
                     $value["VALUE"] = $val;
                     SQLUpdate($table_name, $value);
                     if ($value['LINKED_OBJECT'] && $value['LINKED_PROPERTY']) {
                         setGlobal($value['LINKED_OBJECT'] . '.' . $value['LINKED_PROPERTY'], $val, array($this->name => '0'));
+                    }
+			
+		    if ($value['LINKED_OBJECT'] && $value['LINKED_METHOD']) {
+                        callMethod($value['LINKED_OBJECT'] . '.' . $value['LINKED_METHOD'], array('NEW_VALUE' => $val, 'OLD_VALUE' => $old_value));
                     }
                 }
             }
